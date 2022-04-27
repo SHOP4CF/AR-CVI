@@ -4,5 +4,6 @@
     "IP_fiware-orion-ld": "auto",
     "checkStatus": false,
     "checkRelationship": false,
-    "relationshipObject": "urn:ngsi-ld:Device:siemens:projector"
+    "relationshipObject": "urn:ngsi-ld:Device:siemens:projector",
+    "defaultButtons": true
 }

@@ -14,5 +14,5 @@ docker run -it --rm 	-v $ros_files:/ros_files \
 			--privileged \
 			-e DISPLAY=host.docker.internal:0.0 -e LIBGL_ALWAYS_INDIRECT= \
 			--env="FIWARE_ORION_ID=${FIWARE_ORION_ID}" \
-			emecercelik/ar-cvi:ar-cvi_v1
+			emecercelik/ar-cvi:arcvi-1.3
 

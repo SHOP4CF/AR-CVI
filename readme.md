@@ -1,8 +1,28 @@
 This guide explains the usage of AR-CVI component within the SHOP4CF EU project. 
 
 AR-CVI is a component to display instructions for a human worker. The display can be either on a screen or by projecting to a surface. The communication is via ROS messages or via FIWARE Orion Context Broker (with Linked Data Extensions). 
+# Content
+* [Installation of Orion-LD](#orion-inst)
+* [Setting Config Files](#config)
+* [Docker](#docker)
+	* [Ubuntu](#docker_ubuntu)
+	* [Windows WSL 2](#docker_windows)
+		* [Windows 10 WSL 2 Installation](#install_wsl)
+		* [Docker Desktop WSL 2 Backend Installation](#install_docker)
+		* [VcXsrv Windows X Server Installation and Configuration](#install_xserver)
+		* [Running AR-CVI on Windows WSL 2 for Ubuntu](#run_arcvi)
+* [Message Format](#message_format)
+	* [Instruction types](#instruction_types)
+	* [Add message example](#add_message)
+	* [Reset message examples](#reset_message)
+	* [AddTemplate message example](#add_template_message)
+	* [ResetTemplate message example](#reset_template_message)
+	* [Template explanation](#template_explanation)
+* [Docker Images](#docker_images)
+* [Release Notes](#release_notes)
+	
 
-# Installation of Orion-LD
+# <a name="orion-inst"></a>Installation of Orion-LD
 In order to communicate using FIWARE messages, Orion-LD should be installed. The `RAMP-IoT-LD` folder contains `install.sh` script to install requirements and to start necessary containers with necessary networks set up.
 
 The `uninstall.sh` script would remove all docker related files including images previously generated. Please check and modify it before using. 
@@ -11,7 +31,7 @@ The `uninstall.sh` script would remove all docker related files including images
 sh RAMP-IoU-LD/install.sh
 ```
 
-# Setting Config files
+# <a name="config"></a>Setting Config Files
 AR-CVI reads configuration information for FIWARE communication from a configuration file. The configuration file should be named as `arcvi-fiware-config.json`. The folder that contains the config file should be mounted to the `/configs` in the docker container. 
 
 The configuration information is given below:
@@ -22,7 +42,8 @@ The configuration information is given below:
     "IP_fiware-orion-ld": "172.19.1.1",
     "checkStatus": false,
     "checkRelationship": false,
-    "relationshipObject": "urn:ngsi-ld:Device:siemens:projector"
+    "relationshipObject": "urn:ngsi-ld:Device:siemens:projector",
+    "defaultButtons": true
 }
 ```
 
@@ -38,7 +59,9 @@ The configuration information is given below:
 
 * `relationshipObject` defines the `Relationship` attribute's value. 
 
-# Docker image
+* `defaultButtons` defines whether to show two additional buttons on each new display by default. These buttons are `Show Grid` and `Reset`. `Show Grid` prints the coordinates of grid points as a guidance for determining object locations. `Reset` button cleans the display. 
+
+# <a name="docker"></a>Docker image
 ## <a name="docker_ubuntu"></a>Ubuntu
 `arcvi_run.sh` starts the container and the AR-CVI component. AR-CVI is installed in `emecercelik/ar-cvi:ar-cvi_v1` image, which can be downloaded from docker hub with `docker pull emecercelik/ar-cvi:ar-cvi_v1`.
  
@@ -59,7 +82,7 @@ docker run -it --rm 	-v $configs:/configs \
 			--env="QT_X11_NO_MITSHM=1" \
 			--env="FIWARE_ORION_ID=${FIWARE_ORION_ID}" \
 			--volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
-			emecercelik/ar-cvi:ar-cvi_v1
+			emecercelik/ar-cvi:arcvi-1.3
 
 xhost -local:root
 ```
@@ -67,7 +90,7 @@ xhost -local:root
 `configs` host path should contain `arcvi-fiware-config.json` configuration file. The `$configs` should be mounted in `/configs` inside the container as indicated. `$templates` contains the json templates for AR-CVI to project pre-defined displays or instructions. The `$templates` host folder should be mounted in `/templates` inside the container as shown. The network bridge that the container connects to is indicated with `--net` flag. The `RAMP-IoU-LD/install.sh` script sets up `ramp-iot-ld_default` network. The AR-CVI can communicate using FIWARE messages through this network. `FIWARE_ORION_ID` environment variable is passed to the docker container to get fiware-orion-ld IP address and use it automatically while making `GET` requests.
 
 `--privileged`, `--env="DISPLAY"`, `--env="QT_X11_NO_MITSHM=1"`, `--volume="/tmp/.X11-unix:/tmp/.X11-unix:rw"` tags and xhost commands are necessary for using screen with the docker container.
-## Windows WSL 2
+## <a name="docker_windows"></a>Windows WSL 2
 Please refer to [ref1](https://github.com/ros-visualization/rviz/issues/1522), [ref2](https://dev.to/darksmile92/run-gui-app-in-linux-docker-container-on-windows-host-4kde), and [ref3](http://marinerobotics.gtorg.gatech.edu/running-ros-with-gui-in-docker-using-windows-subsystem-for-linux-2-wsl2/) for the solutions explained below.
  
 Please follow steps below to run AR-CVI on Windows WSL 2.
@@ -121,10 +144,10 @@ docker run -it --rm     -v $configs:/configs \
                         --privileged \
                         -e DISPLAY=host.docker.internal:0.0 -e LIBGL_ALWAYS_INDIRECT= \
                         --env="FIWARE_ORION_ID=${FIWARE_ORION_ID}" \
-                        emecercelik/ar-cvi:ar-cvi_v1
+                        emecercelik/ar-cvi:arcvi-1.3
 ```
 
-# Message Format
+# <a name="message_format"></a>Message Format
 
 AR-CVI message format is built on top of [SHOP4CF Task data model](https://shop4cf.github.io/data-models/task.html). All data models defined for SHOP4CF can be found [here](https://shop4cf.github.io/data-models/). 
 
@@ -138,7 +161,7 @@ There are 4 types of commands for AR-CVI:
 
 An example of AddTemplate message type can be seen in [ar-cvi_addtemplate_example.pdf](ar-cvi_addtemplate_example.pdf) pdf document. In this pdf, examples of AddTemplate message and the template are shown with their effects on the screen. 
 
-## Instruction types
+## <a name="instruction_types"></a>Instruction types
 
 The supported instruction types are listed below:
 <ol>
@@ -221,7 +244,7 @@ curl -iX POST 'http://<fiware_ip>:1026/ngsi-ld/v1/entities'
          "outputParameters": {"type": "Property",
                               "value": {"materialsAlreadyTransported": 0,"percentageCompleted": 0},
                               "observedAt": "2020-12-01T11:23:19Z"},
-         "@context": ["https://smartdatamodels.org/context.jsonld","https://raw.githubusercontent.com/shop4cf/data-models/master/docs/shop4cfcontext.jsonld"]
+         "@context": []
          }'
 ```
 
@@ -229,7 +252,7 @@ Subscribers to this Task model can read the message and use the message as a tri
 </ol>
 
 
-## Add message example
+## <a name="add_message"></a>Add message example
 ```bash
 curl -iX POST \
   'http://localhost:1026/ngsi-ld/v1/entities' \
@@ -240,6 +263,7 @@ curl -iX POST \
     "workParameters": {
         "type": "Property",
         "value": {"type":"Add",
+                   "displayStatus":"inProgress",
                    "instruction":"Written Instruction",
                             "boxes":[{
                             	"position":["0.35","0.2","0.0"], 
@@ -307,13 +331,11 @@ curl -iX POST \
         "observedAt": "2020-12-01T11:23:19Z"
     },
     "@context": [
-        "https://smartdatamodels.org/context.jsonld",
-        "https://raw.githubusercontent.com/shop4cf/data-models/master/docs/shop4cfcontext.jsonld"
     ]
 }'
 ```
 
-## Reset message examples
+## <a name="reset_message"></a>Reset message examples
 ```bash
 curl -iX POST \
   'http://localhost:1026/ngsi-ld/v1/entities' \
@@ -324,6 +346,7 @@ curl -iX POST \
     "workParameters": {
         "type": "Property",
         "value": {"type":"Reset",
+                   "displayStatus":"inProgress",
                    "instruction":"Written Instruction 3",
                             "boxes":[
                             	{
@@ -394,8 +417,6 @@ curl -iX POST \
         "observedAt": "2020-12-01T11:23:19Z"
     },
     "@context": [
-        "https://smartdatamodels.org/context.jsonld",
-        "https://raw.githubusercontent.com/shop4cf/data-models/master/docs/shop4cfcontext.jsonld"
     ]
 }
 ```
@@ -409,7 +430,8 @@ curl -iX POST \
     "type": "Task",
     "workParameters": {
         "type": "Property",
-        "value": {"type":"Reset"
+        "value": {"type":"Reset",
+                   "displayStatus":"inProgress"
                    
              }
     },
@@ -422,13 +444,11 @@ curl -iX POST \
         "observedAt": "2020-12-01T11:23:19Z"
     },
     "@context": [
-        "https://smartdatamodels.org/context.jsonld",
-        "https://raw.githubusercontent.com/shop4cf/data-models/master/docs/shop4cfcontext.jsonld"
     ]
 }'
 ```
 
-## AddTemplate message example
+## <a name="add_template_message"></a>AddTemplate message example
 ```bash
 curl -iX POST \
   'http://localhost:1026/ngsi-ld/v1/entities' \
@@ -439,7 +459,8 @@ curl -iX POST \
     "workParameters": {
         "type": "Property",
         "value": {"type":"AddTemplate",
-                   "path":"/templates/temp3.json"
+                   "path":"/templates/temp3.json",
+                   "displayStatus":"inProgress"
              }
     },
     "outputParameters": {
@@ -451,13 +472,11 @@ curl -iX POST \
         "observedAt": "2020-12-01T11:23:19Z"
     },
     "@context": [
-        "https://smartdatamodels.org/context.jsonld",
-        "https://raw.githubusercontent.com/shop4cf/data-models/master/docs/shop4cfcontext.jsonld"
     ]
 }'
 ```
 
-## ResetTemplate message example
+## <a name="reset_template_message"></a>ResetTemplate message example
 ```bash
 curl -iX POST \
   'http://localhost:1026/ngsi-ld/v1/entities' \
@@ -468,7 +487,8 @@ curl -iX POST \
     "workParameters": {
         "type": "Property",
         "value": {"type":"ResetTemplate",
-                   "path":"/templates/temp2.json"
+                   "path":"/templates/temp2.json",
+                   "displayStatus":"inProgress"
              }
     },
     "outputParameters": {
@@ -487,7 +507,7 @@ curl -iX POST \
 
 ```
 
-## Template explanation
+## <a name="template_explanation"></a>Template explanation
 Template is a json file that contains display instructions in a formatted way. An example can be seen below:
 ```json
 {
@@ -623,8 +643,22 @@ Template is a json file that contains display instructions in a formatted way. A
     ]
 }
 ```
+# <a name="docker_images"></a>Docker Images
 
-# Release Notes
-* [19.04.2022] arcvi-1.1 
+Please check [Docker Hub](https://hub.docker.com/r/emecercelik/ar-cvi/tags) for AR-CVI Docker Images.
+
+# <a name="release_notes"></a>Release Notes
+* [27.04.2022] arcvi-1.3 `docker pull emecercelik/ar-cvi:arcvi-1.3`
+	* Objects are drawn before images that images are behind all other objects except the background.
+	* Welcome page is generated.
+	* Grid template is generated as a guidance for coordinates of the display.  
+	* The option of adding Show Grid and Reset buttons to each slide is added.
+* [20.04.2022] arcvi-1.2 `docker pull emecercelik/ar-cvi:arcvi-1.2`
+	* Change user input (press button) Fiware urn IDs. 8 byte hexadecimal token is used (Ex: `a23d8aad20332582`) instead of incremental integers (Ex: `000001`, `0000002`, ...).
+	* Update observation time for the Task data model.
+	* Change POST method to Python request.
+	* Check number of UIs in the context broker and prune if above threshold. 
+* [19.04.2022] arcvi-1.1 `docker pull emecercelik/ar-cvi:arcvi-1.1`
 	* Fix overloaded context returns. Filtering context information is updated. 
-* ar-cvi_v1 [Initial]
+	* `displayStatus` flag is added to the messages. After a Task is displayed its displayStatus is updated to `completed`. If this flag is updated to `inProgress`, the updated Task message is re-displayed.
+* [Initial] ar-cvi_v1 `docker pull emecercelik/ar-cvi:ar-cvi_v1`

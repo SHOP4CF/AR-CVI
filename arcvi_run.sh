@@ -17,7 +17,7 @@ docker run -it --rm 	-v $ros_files:/ros_files \
 			--env="QT_X11_NO_MITSHM=1" \
 			--env="FIWARE_ORION_ID=${FIWARE_ORION_ID}" \
 			--volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
-			emecercelik/ar-cvi:ar-cvi_v1
+			emecercelik/ar-cvi:arcvi-1.3
 
 xhost -local:root
 
